@@ -31,12 +31,16 @@ func LoadPrivateKey(privateKey string) (*ecdsa.PrivateKey, error) {
 	if block == nil {
 		return nil, errors.New("failed to decode pem private key")
 	}
-
-	privKey, err := x509.ParseECPrivateKey(block.Bytes)
+	privKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	// privKey, err := x509.ParseECPrivateKey(block.Bytes)
 	if err != nil {
 		return nil, errors.New("failed to parse ecdsa private key")
 	}
-	return privKey, nil
+	eccKey, ok := privKey.(*ecdsa.PrivateKey)
+	if !ok {
+		return nil, errors.New("invalid ecdsa key format")
+	}
+	return eccKey, nil
 }
 
 func GenerateRandomString(n int) string {

@@ -2,10 +2,11 @@ package util
 
 import (
 	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"math/rand"
+	"math/big"
 )
 
 func LoadPublicKey(publicKey string) (*ecdsa.PublicKey, error) {
@@ -31,24 +32,25 @@ func LoadPrivateKey(privateKey string) (*ecdsa.PrivateKey, error) {
 	if block == nil {
 		return nil, errors.New("failed to decode pem private key")
 	}
-	privKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	// privKey, err := x509.ParseECPrivateKey(block.Bytes)
+
+	privKey, err := x509.ParseECPrivateKey(block.Bytes)
 	if err != nil {
 		return nil, errors.New("failed to parse ecdsa private key")
 	}
-	eccKey, ok := privKey.(*ecdsa.PrivateKey)
-	if !ok {
-		return nil, errors.New("invalid ecdsa key format")
-	}
-	return eccKey, nil
+	return privKey, nil
 }
 
 func GenerateRandomString(n int) string {
 	var letters = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
 
+	numLetters := big.NewInt(int64(len(letters)))
 	s := make([]rune, n)
 	for i := range s {
-		s[i] = letters[rand.Intn(len(letters))]
+		idx, err := rand.Int(rand.Reader, numLetters)
+		if err != nil {
+			panic(err)
+		}
+		s[i] = letters[idx.Int64()]
 	}
 	return string(s)
 }

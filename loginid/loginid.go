@@ -143,6 +143,7 @@ func (s *LoginID) CreateTx(txPayload string, options *CreateTxOptions) (string, 
 		"Authorization": fmt.Sprintf("Bearer %s", jwt),
 		"X-Client-ID":   s.ClientID,
 	}
+
 	p := map[string]interface{}{
 		"client_id":  s.ClientID,
 		"tx_payload": txPayload,

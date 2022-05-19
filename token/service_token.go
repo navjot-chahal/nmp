@@ -42,6 +42,7 @@ func NewServiceToken(clientID string, scope string, opts *ServiceTokenOptions) *
 		Typ: "JWT",
 		Alg: "ES256",
 	}
+
 	p := serviceTokenPayload{
 		ClientID: clientID,
 		Type:     scope,

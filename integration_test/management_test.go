@@ -89,18 +89,18 @@ func (s *e2eTestSuite) TestCodeManagement() {
 	user, err := s.lm.AddUserWithoutCred(username)
 	s.NoError(err)
 
-	gc, err := s.lm.GenerateCode(user.ID, "short", "temporary_authentication", true)
+	gc, err := s.lm.GenerateCode("", user.Username, "short", "temporary_authentication", true)
 	s.NoError(err)
 	s.Equal(true, gc.IsAuthorized)
 	s.NotEmpty(gc.Code)
 	s.NotEmpty(gc.ExpiresAt)
 
-	ac, err := s.lm.AuthorizeCode(user.ID, "short", "temporary_authentication", gc.Code)
+	ac, err := s.lm.AuthorizeCode(user.ID, "", "short", "temporary_authentication", gc.Code)
 	s.NoError(err)
 	s.Equal(true, ac.IsAuthorized)
 	s.NotEmpty(ac.ExpiresAt)
 
-	ic, err := s.lm.InvalidateAllCodes(user.ID, "short", "temporary_authentication")
+	ic, err := s.lm.InvalidateAllCodes("", user.Username, "short", "temporary_authentication")
 	s.NoError(err)
 	s.NotEmpty(ic.DeletedAt)
 

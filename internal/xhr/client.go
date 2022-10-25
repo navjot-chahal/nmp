@@ -16,9 +16,12 @@ type Client struct {
 }
 
 // Creates a new instance of Client
-func New(headers *http.Header) *Client {
+func New(headers *http.Header, timeout time.Duration) *Client {
+	if timeout == 0 {
+		timeout = 20 * time.Second
+	}
 	c := &Client{
-		http: &http.Client{Timeout: 20 * time.Second},
+		http: &http.Client{Timeout: timeout},
 	}
 	if headers != nil {
 		c.headers = headers.Clone()

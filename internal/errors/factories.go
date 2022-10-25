@@ -11,3 +11,7 @@ func InvalidPublicKeyErr(err error, message string, params ...interface{}) Error
 func UnsupportedAlgErr(message string, params ...interface{}) Error {
 	return NewLoginidError(UnsupportedAlg, nil, message, params...)
 }
+
+func InvalidParameterErr(message string, params ...interface{}) Error {
+	return NewLoginidError(InvalidParameter, nil, message, params...)
+}

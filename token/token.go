@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/navjot-chahal/nmp/internal/util"
 )
 
 type Token interface {
@@ -38,13 +37,12 @@ func DecodeTokenHeader(tokenHeader string) (*Header, error) {
 	return h, nil
 }
 
-func SignToken(privateKey string, tok Token) (string, error) {
+func SignToken(privateKey *ecdsa.PrivateKey, tok Token) (string, error) {
 	var err error
 	method := jwt.GetSigningMethod("ES256")
 
-	var ecdsaKey *ecdsa.PrivateKey
-	if ecdsaKey, err = util.LoadPrivateKey(privateKey); err != nil {
-		return "", err
+	if privateKey == nil {
+		return "", errors.New("cannot sign with nil private key")
 	}
 
 	header := tok.GetHeader()
@@ -62,7 +60,7 @@ func SignToken(privateKey string, tok Token) (string, error) {
 
 	// sign the joining of headerEncode & payload
 	var sig string
-	if sig, err = method.Sign(strings.Join([]string{headerEncode, payloadEncode}, "."), ecdsaKey); err != nil {
+	if sig, err = method.Sign(strings.Join([]string{headerEncode, payloadEncode}, "."), privateKey); err != nil {
 		return "", err
 	}
 	return strings.Join([]string{headerEncode, payloadEncode, sig}, "."), nil

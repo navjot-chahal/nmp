@@ -38,5 +38,5 @@ Once the package is installed, you can import the package and connect to LoginID
 Refer to our documentations at
 https://docs.loginid.io/Server-SDKs/Go/go-get-started for more details.
 
-## Tell us how we’re doing
-Have our solution in production? Tell us about your site on marketing@loginid.io and we’ll post on our social channels!
+## How we’re doing
+Have our solution in production? Tell us about your experience in a quick survey [here](https://survey.hsforms.com/1fuLGBOcST12TTnAfcimtKA8o3nd). 

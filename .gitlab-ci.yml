@@ -1,0 +1,37 @@
+image: golang:1.18.4
+
+include:
+  - project: 'loginid/software/ci'
+    ref: main
+    file: '/templates/security/all.gitlab-ci.yml'
+
+stages:
+- test
+- deploy
+
+publish:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - VERSION
+  script:
+    - apk update && apk add git
+    - git config --global user.name "${CI_GITLAB_BOT_USERNAME}"
+    - git config --global user.email "${CI_GITLAB_BOT_EMAIL}"
+    - git config --global credential.helper store
+    - echo "https://$CI_GITLAB_BOT_USERNAME:$CI_GITLAB_BOT_TOKEN@gitlab.com" > ~/.git-credentials
+    - git remote set-url origin $CI_PROJECT_URL.git
+    - GOSDK_TAG_VERSION="v$(cat VERSION)"
+
+    # Check if current Version exist
+    # Create new tag if Version doesn't exist
+    - |
+      if [[ ! $(git tag -l $GOSDK_TAG_VERSION) ]]; then
+        git tag $GOSDK_TAG_VERSION
+        git push origin $GOSDK_TAG_VERSION
+        echo "Released ${GOSDK_TAG_VERSION}"
+      else
+        echo "${GOSDK_TAG_VERSION} already exists"
+      fi
+

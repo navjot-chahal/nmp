@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/navjot-chahal/nmp/fido2"
+	"github.com/navjot-chahal/nmp/internal/util"
+	"github.com/navjot-chahal/nmp/loginid"
 	"github.com/navjot-chahal/nmp/token"
 )
 
@@ -23,17 +24,8 @@ type CredentialsResponse struct {
 	Credentials []Credential `json:"credentials"`
 }
 
-type CredentialResponse struct {
-	UserID     string     `json:"user_id"`
-	Credential Credential `json:"credential"`
-}
-
-type AddCredentialInitResponse struct {
-	AttestationPayload fido2.AttestationPayloadResponse `json:"attestation_payload"`
-}
-
-// GetCredentials retrieves an exhaustive list of credentials for a given user
-func (m *Management) GetCredentials(userID string) (*CredentialsResponse, error) {
+// Retrieves an exhaustive list of credentials for a given user_id or username
+func (m *Management) GetCredentials(userID string, username string) (*CredentialsResponse, error) {
 	jwt, err := m.GenerateServiceToken("credentials.list", &token.ServiceTokenOptions{UserID: userID})
 	if err != nil {
 		return nil, err
@@ -42,7 +34,22 @@ func (m *Management) GetCredentials(userID string) (*CredentialsResponse, error)
 		"Authorization": fmt.Sprintf("Bearer %s", jwt),
 		"X-Client-ID":   m.ClientID,
 	}
-	res, err := m.Http.Get(fmt.Sprintf("%s/credentials?user_id=%s", m.BaseURL, userID), h)
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	p := map[string]interface{}{
+		"client_id":         m.ClientID,
+		keyUsernameOrUserID: valUsernameOrUserID,
+	}
+
+	d, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
+	res, err := m.Http.Post(fmt.Sprintf("%s/credentials/list", m.BaseURL), bytes.NewBuffer(d), h)
 	if err != nil {
 		return nil, err
 	}
@@ -54,9 +61,14 @@ func (m *Management) GetCredentials(userID string) (*CredentialsResponse, error)
 	return creds, nil
 }
 
-// RenameCredential updates a credential name of a user
-func (m *Management) RenameCredential(userID string, credID string, updatedName string) (*CredentialResponse, error) {
-	jwt, err := m.GenerateServiceToken("credentials.rename", &token.ServiceTokenOptions{UserID: userID})
+type CredentialResponse struct {
+	UserID     string     `json:"user_id"`
+	Credential Credential `json:"credential"`
+}
+
+// Renames a user credential
+func (m *Management) RenameCredential(userID string, username string, credID string, updatedName string) (*CredentialResponse, error) {
+	jwt, err := m.GenerateServiceToken("credentials.rename", &token.ServiceTokenOptions{UserID: userID, Username: username})
 	if err != nil {
 		return nil, err
 	}
@@ -64,14 +76,21 @@ func (m *Management) RenameCredential(userID string, credID string, updatedName 
 		"Authorization": fmt.Sprintf("Bearer %s", jwt),
 		"X-Client-ID":   m.ClientID,
 	}
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	p := map[string]interface{}{
 		"client_id": m.ClientID,
-		"user_id":   userID,
 		"credential": map[string]string{
 			"uuid": credID,
 			"name": updatedName,
 		},
+		keyUsernameOrUserID: valUsernameOrUserID,
 	}
+
 	d, err := json.Marshal(p)
 	if err != nil {
 		return nil, err
@@ -89,9 +108,9 @@ func (m *Management) RenameCredential(userID string, credID string, updatedName 
 	return cred, nil
 }
 
-// RevokeCredential deletes an existing user credential
-func (m *Management) RevokeCredential(userID string, credID string) (*CredentialResponse, error) {
-	jwt, err := m.GenerateServiceToken("credentials.revoke", &token.ServiceTokenOptions{UserID: userID})
+// Revokes an existing user credential
+func (m *Management) RevokeCredential(userID string, username string, credID string) (*CredentialResponse, error) {
+	jwt, err := m.GenerateServiceToken("credentials.revoke", &token.ServiceTokenOptions{UserID: userID, Username: username})
 	if err != nil {
 		return nil, err
 	}
@@ -99,13 +118,20 @@ func (m *Management) RevokeCredential(userID string, credID string) (*Credential
 		"Authorization": fmt.Sprintf("Bearer %s", jwt),
 		"X-Client-ID":   m.ClientID,
 	}
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	p := map[string]interface{}{
 		"client_id": m.ClientID,
-		"user_id":   userID,
 		"credential": map[string]string{
 			"uuid": credID,
 		},
+		keyUsernameOrUserID: valUsernameOrUserID,
 	}
+
 	d, err := json.Marshal(p)
 	if err != nil {
 		return nil, err
@@ -123,9 +149,9 @@ func (m *Management) RevokeCredential(userID string, credID string) (*Credential
 	return cred, nil
 }
 
-// InitAddCredentialWithoutCode adds a credential without pre-generated authorization code
-func (m *Management) InitAddCredentialWithoutCode(userID string) (*AddCredentialInitResponse, error) {
-	jwt, err := m.GenerateServiceToken("credentials.force_add", &token.ServiceTokenOptions{UserID: userID})
+// Initialize adding a FIDO2 credential without pre-generated authorization code
+func (m *Management) ForceAddFido2CredentialInit(userID string, username string, displayName string, roamingAuthenticator bool) (*loginid.AddFido2CredentialInitResponse, error) {
+	jwt, err := m.GenerateServiceToken("credentials.force_add", &token.ServiceTokenOptions{UserID: userID, Username: username})
 	if err != nil {
 		return nil, err
 	}
@@ -133,10 +159,25 @@ func (m *Management) InitAddCredentialWithoutCode(userID string) (*AddCredential
 		"Authorization": fmt.Sprintf("Bearer %s", jwt),
 		"X-Client-ID":   m.ClientID,
 	}
-	p := map[string]interface{}{
-		"client_id": m.ClientID,
-		"user_id":   userID,
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
 	}
+
+	p := map[string]interface{}{
+		"client_id":         m.ClientID,
+		keyUsernameOrUserID: valUsernameOrUserID,
+	}
+
+	o := map[string]interface{}{
+		"roaming_authenticator": roamingAuthenticator,
+	}
+	if displayName != "" {
+		o["display_name"] = displayName
+	}
+	p["options"] = o
+
 	d, err := json.Marshal(p)
 	if err != nil {
 		return nil, err
@@ -147,9 +188,228 @@ func (m *Management) InitAddCredentialWithoutCode(userID string) (*AddCredential
 		return nil, err
 	}
 
-	var cred *AddCredentialInitResponse
+	var cred *loginid.AddFido2CredentialInitResponse
 	if err := m.Http.DecodeResponse(res, &cred); err != nil {
 		return nil, err
 	}
 	return cred, nil
+}
+
+type AddDocScanCredentialInitResponse struct {
+	CredentialUUID string `json:"credential_uuid"`
+	IFrameURL      string `json:"iframe_url"`
+}
+
+// Initialize adding a document scan credential
+func (m *Management) AddDocScanCredentialInit(clientID string, userID string, username string, credentialName string) (*AddDocScanCredentialInitResponse, error) {
+	jwt, err := m.GenerateServiceToken("credentials.force_add", &token.ServiceTokenOptions{UserID: userID})
+	if err != nil {
+		return nil, err
+	}
+	h := map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", jwt),
+		"X-Client-ID":   m.ClientID,
+	}
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	p := map[string]interface{}{
+		"client_id":         m.ClientID,
+		keyUsernameOrUserID: valUsernameOrUserID,
+	}
+
+	if credentialName != "" {
+		p["options"] = map[string]interface{}{"credential_name": credentialName}
+	}
+	d, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := m.Http.Post(fmt.Sprintf("%s/credentials/authid/init", m.BaseURL), bytes.NewBuffer(d), h)
+	if err != nil {
+		return nil, err
+	}
+
+	var cred *AddDocScanCredentialInitResponse
+	if err := m.Http.DecodeResponse(res, &cred); err != nil {
+		return nil, err
+	}
+	return cred, nil
+}
+
+// Complete adding a document scan credential
+func (m *Management) AddDocScanCredentialComplete(clientID string, userID string, username string, credentialUUID string, activateCredential bool) (*loginid.AuthenticationResponse, error) {
+	jwt, err := m.GenerateServiceToken("credentials.force_add", &token.ServiceTokenOptions{UserID: userID, Username: username})
+	if err != nil {
+		return nil, err
+	}
+	h := map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", jwt),
+		"X-Client-ID":   m.ClientID,
+	}
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	p := map[string]interface{}{
+		"client_id":           m.ClientID,
+		"credential_uuid":     credentialUUID,
+		"activate_credential": activateCredential,
+		keyUsernameOrUserID:   valUsernameOrUserID,
+	}
+
+	d, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := m.Http.Post(fmt.Sprintf("%s/credentials/authid/complete", m.BaseURL), bytes.NewBuffer(d), h)
+	if err != nil {
+		return nil, err
+	}
+
+	var cred *loginid.AuthenticationResponse
+	if err := m.Http.DecodeResponse(res, &cred); err != nil {
+		return nil, err
+	}
+	return cred, nil
+}
+
+type EvaluateDocScanCredentialResponse struct {
+	ResultURL string `json:"result_url"`
+	TokenType string `json:"token_type"`
+	AuthToken string `json:"auth_token"`
+}
+
+// Retrieves document scan and evaluate the credential
+func (m *Management) EvaluateDocScanCredential(clientID string, userID string, username string, credentialUUID string) (*EvaluateDocScanCredentialResponse, error) {
+	jwt, err := m.GenerateServiceToken("credentials.retrieve_sensitive", &token.ServiceTokenOptions{UserID: userID, Username: username})
+	if err != nil {
+		return nil, err
+	}
+	h := map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", jwt),
+		"X-Client-ID":   m.ClientID,
+	}
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	p := map[string]interface{}{
+		"client_id":         m.ClientID,
+		"credential_uuid":   credentialUUID,
+		keyUsernameOrUserID: valUsernameOrUserID,
+	}
+
+	d, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := m.Http.Post(fmt.Sprintf("%s/credentials/authid/evaluate", m.BaseURL), bytes.NewBuffer(d), h)
+	if err != nil {
+		return nil, err
+	}
+
+	var cred *EvaluateDocScanCredentialResponse
+	if err := m.Http.DecodeResponse(res, &cred); err != nil {
+		return nil, err
+	}
+	return cred, nil
+}
+
+type GenerateRecoveryCodeResponse struct {
+	Code      string `json:"code"`
+	CreatedAt string `json:"created_at"`
+}
+
+// Generates a recovery code
+func (m *Management) GenerateRecoveryCode(clientID string, userID string, username string) (*GenerateRecoveryCodeResponse, error) {
+	jwt, err := m.GenerateServiceToken("credentials.add_recovery", &token.ServiceTokenOptions{UserID: userID, Username: username})
+	if err != nil {
+		return nil, err
+	}
+	h := map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", jwt),
+		"X-Client-ID":   m.ClientID,
+	}
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	p := map[string]interface{}{
+		"client_id":         m.ClientID,
+		keyUsernameOrUserID: valUsernameOrUserID,
+	}
+
+	d, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := m.Http.Post(fmt.Sprintf("%s/credentials/recovery-code", m.BaseURL), bytes.NewBuffer(d), h)
+	if err != nil {
+		return nil, err
+	}
+	var code *GenerateRecoveryCodeResponse
+	if err := m.Http.DecodeResponse(res, &code); err != nil {
+		return nil, err
+	}
+	return code, nil
+}
+
+type AddPublicKeyCredentialResponse struct {
+	Code      string `json:"code"`
+	CreatedAt string `json:"created_at"`
+}
+
+// Add a public key as a new credential
+func (m *Management) AddPublicKeyCredential(clientID string, userID string, username string, publickeyAlg string, publickey string, credentialName string) (*loginid.AuthenticationResponse, error) {
+	jwt, err := m.GenerateServiceToken("credentials.force_add", &token.ServiceTokenOptions{UserID: userID, Username: username})
+	if err != nil {
+		return nil, err
+	}
+	h := map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", jwt),
+	}
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	p := map[string]interface{}{
+		"client_id":         m.ClientID,
+		"publickey_alg":     publickeyAlg,
+		"publickey":         publickey,
+		keyUsernameOrUserID: valUsernameOrUserID,
+	}
+
+	if credentialName != "" {
+		p["options"] = map[string]string{"credential_name": credentialName}
+	}
+	d, err := json.Marshal(p)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := m.Http.Post(fmt.Sprintf("%s/credentials/publickey", m.BaseURL), bytes.NewBuffer(d), h)
+	if err != nil {
+		return nil, err
+	}
+	var ar *loginid.AuthenticationResponse
+	if err := m.Http.DecodeResponse(res, &ar); err != nil {
+		return nil, err
+	}
+	return ar, nil
 }

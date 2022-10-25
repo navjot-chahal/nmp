@@ -19,8 +19,7 @@ type UserResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// AddUserWithoutCred creates a new user without a credential
-// The new user can create new credentials with recovery flow
+// Add a new user without credentials. The new user can create new credentials with recovery flow
 func (m *Management) AddUserWithoutCred(username string) (*UserResponse, error) {
 	jwt, err := m.GenerateServiceToken("users.create", &token.ServiceTokenOptions{Username: username})
 	if err != nil {
@@ -51,7 +50,7 @@ func (m *Management) AddUserWithoutCred(username string) (*UserResponse, error) 
 	return u, nil
 }
 
-// GetUserId retrieves a user account by username
+// Retrieves a user account by username
 func (m *Management) GetUserByUsername(username string) (*UserResponse, error) {
 	jwt, err := m.GenerateServiceToken("users.retrieve", &token.ServiceTokenOptions{Username: username})
 	if err != nil {
@@ -82,7 +81,7 @@ func (m *Management) GetUserByUsername(username string) (*UserResponse, error) {
 	return u, nil
 }
 
-// DeleteUserByUsername deletes a user account by username
+// Deletes a user account by username
 func (m *Management) DeleteUserByUsername(username string) error {
 	jwt, err := m.GenerateServiceToken("users.delete", &token.ServiceTokenOptions{Username: username})
 	if err != nil {
@@ -112,7 +111,7 @@ func (m *Management) DeleteUserByUsername(username string) error {
 	return nil
 }
 
-// DeleteUserById deletes a user account by user id
+// Deletes a user account by user id
 func (m *Management) DeleteUserById(userID string) error {
 	jwt, err := m.GenerateServiceToken("users.delete", &token.ServiceTokenOptions{UserID: userID})
 	if err != nil {
@@ -132,7 +131,7 @@ func (m *Management) DeleteUserById(userID string) error {
 	return nil
 }
 
-// ActivateUserById activates a user account by user id
+// Activates a user account by user id
 func (m *Management) ActivateUserById(userID string) (*UserResponse, error) {
 	jwt, err := m.GenerateServiceToken("users.activate", &token.ServiceTokenOptions{UserID: userID})
 	if err != nil {
@@ -153,7 +152,7 @@ func (m *Management) ActivateUserById(userID string) (*UserResponse, error) {
 	return u, nil
 }
 
-// DeactivateUserById deactivates a user account by user id
+// Deactivates a user account by user id
 func (m *Management) DeactivateUserById(userID string) (*UserResponse, error) {
 	jwt, err := m.GenerateServiceToken("users.deactivate", &token.ServiceTokenOptions{UserID: userID})
 	if err != nil {

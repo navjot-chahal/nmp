@@ -19,7 +19,7 @@ type serviceTokenPayload struct {
 	Type     string `json:"type"`
 	Nonce    string `json:"nonce"`
 	Iat      int64  `json:"iat"`
-	Username string `json:"username,omitempty"`
+	Username string `json:"udata,omitempty"`
 	UserID   string `json:"user_id,omitempty"`
 }
 

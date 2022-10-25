@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/navjot-chahal/nmp/internal/util"
 	"github.com/navjot-chahal/nmp/token"
 )
 
@@ -23,19 +24,25 @@ type GenerateCodeResponse struct {
 }
 
 // GenerateCode generates a new code
-func (m *Management) GenerateCode(userID string, codeType string, purpose CodePurpose, isAuthorized bool) (*GenerateCodeResponse, error) {
-	jwt, err := m.GenerateServiceToken("codes.generate", &token.ServiceTokenOptions{UserID: userID})
+func (m *Management) GenerateCode(userID string, username string, codeType string, purpose CodePurpose, isAuthorized bool) (*GenerateCodeResponse, error) {
+	jwt, err := m.GenerateServiceToken("codes.generate", &token.ServiceTokenOptions{UserID: userID, Username: username})
 	if err != nil {
 		return nil, err
 	}
 	h := map[string]string{
 		"Authorization": fmt.Sprintf("Bearer %s", jwt),
 	}
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	p := map[string]interface{}{
-		"client_id": m.ClientID,
-		"user_id":   userID,
-		"purpose":   purpose,
-		"authorize": isAuthorized,
+		"client_id":         m.ClientID,
+		"purpose":           purpose,
+		"authorize":         isAuthorized,
+		keyUsernameOrUserID: valUsernameOrUserID,
 	}
 	d, err := json.Marshal(p)
 	if err != nil {
@@ -59,20 +66,27 @@ type AuthorizeCodeResponse struct {
 }
 
 // AuthorizeCode authorizes the given code
-func (m *Management) AuthorizeCode(userID string, codeType string, purpose CodePurpose, code string) (*AuthorizeCodeResponse, error) {
-	jwt, err := m.GenerateServiceToken("codes.authorize", &token.ServiceTokenOptions{UserID: userID})
+func (m *Management) AuthorizeCode(userID string, username string, codeType string, purpose CodePurpose, code string) (*AuthorizeCodeResponse, error) {
+	jwt, err := m.GenerateServiceToken("codes.authorize", &token.ServiceTokenOptions{UserID: userID, Username: username})
 	if err != nil {
 		return nil, err
 	}
 	h := map[string]string{
 		"Authorization": fmt.Sprintf("Bearer %s", jwt),
 	}
-	p := map[string]interface{}{
-		"client_id": m.ClientID,
-		"user_id":   userID,
-		"purpose":   purpose,
-		"code":      code,
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
 	}
+
+	p := map[string]interface{}{
+		"client_id":         m.ClientID,
+		"purpose":           purpose,
+		"code":              code,
+		keyUsernameOrUserID: valUsernameOrUserID,
+	}
+
 	d, err := json.Marshal(p)
 	if err != nil {
 		return nil, err
@@ -94,19 +108,26 @@ type InvalidateCodeResponse struct {
 }
 
 // InvalidateAllCodes invalidates the codes
-func (m *Management) InvalidateAllCodes(userID string, codeType string, purpose CodePurpose) (*InvalidateCodeResponse, error) {
-	jwt, err := m.GenerateServiceToken("codes.invalidate", &token.ServiceTokenOptions{UserID: userID})
+func (m *Management) InvalidateAllCodes(userID string, username string, codeType string, purpose CodePurpose) (*InvalidateCodeResponse, error) {
+	jwt, err := m.GenerateServiceToken("codes.invalidate", &token.ServiceTokenOptions{UserID: userID, Username: username})
 	if err != nil {
 		return nil, err
 	}
 	h := map[string]string{
 		"Authorization": fmt.Sprintf("Bearer %s", jwt),
 	}
-	p := map[string]interface{}{
-		"client_id": m.ClientID,
-		"user_id":   userID,
-		"purpose":   purpose,
+
+	keyUsernameOrUserID, valUsernameOrUserID, err := util.GetUsernameOrUserID(username, userID)
+	if err != nil {
+		return nil, err
 	}
+
+	p := map[string]interface{}{
+		"client_id":         m.ClientID,
+		"purpose":           purpose,
+		keyUsernameOrUserID: valUsernameOrUserID,
+	}
+
 	d, err := json.Marshal(p)
 	if err != nil {
 		return nil, err

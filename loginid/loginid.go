@@ -373,6 +373,13 @@ func (s *LoginID) RegisterPassword(username, password string) (*AuthenticationRe
 	h := map[string]string{
 		"X-Client-ID": s.ClientID,
 	}
+	if s.PrivateKey != nil {
+		jwt, err := s.GenerateServiceToken("auth.login", &token.ServiceTokenOptions{Username: username})
+		if err != nil {
+			return nil, err
+		}
+		h["Authorization"] = fmt.Sprintf("Bearer %s", jwt)
+	}
 	p := map[string]interface{}{
 		"client_id":             s.ClientID,
 		"username":              username,
@@ -401,6 +408,13 @@ func (s *LoginID) RegisterPassword(username, password string) (*AuthenticationRe
 func (s *LoginID) AuthenticatePassword(username, password string) (*AuthenticationResponse, error) {
 	h := map[string]string{
 		"X-Client-ID": s.ClientID,
+	}
+	if s.PrivateKey != nil {
+		jwt, err := s.GenerateServiceToken("auth.login", &token.ServiceTokenOptions{Username: username})
+		if err != nil {
+			return nil, err
+		}
+		h["Authorization"] = fmt.Sprintf("Bearer %s", jwt)
 	}
 	p := map[string]interface{}{
 		"client_id": s.ClientID,

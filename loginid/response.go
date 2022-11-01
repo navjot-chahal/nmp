@@ -36,11 +36,6 @@ type AuthenticateFido2InitResponse struct {
 	AssertionPayload fido2.AssertionPayloadResponse `json:"assertion_payload"`
 }
 
-type AuthenticateDocScanInitResponse struct {
-	CredentialUUID string `json:"credential_uuid"`
-	IFrameURL      string `json:"iframe_url"`
-}
-
 type AuthenticatePublicKeyInitResponse struct {
 	ChallengeID string `json:"challenge_id"`
 	Nonce       string `json:"server_nonce"`

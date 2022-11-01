@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.3.0]
+### Removed
+- Remove `AddDocScanCredentialInit`, `AddDocScanCredentialComplete`, `EvaluateDocScanCredential`, `AuthenticateDocScanInit` and `AuthenticateDocScanComplete` AuthID related functions.
+
 ## [v0.2.0]
 
 ### Added

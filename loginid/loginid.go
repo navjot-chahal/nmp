@@ -374,7 +374,7 @@ func (s *LoginID) RegisterPassword(username, password string) (*AuthenticationRe
 		"X-Client-ID": s.ClientID,
 	}
 	if s.PrivateKey != nil {
-		jwt, err := s.GenerateServiceToken("auth.login", &token.ServiceTokenOptions{Username: username})
+		jwt, err := s.GenerateServiceToken("auth.register", &token.ServiceTokenOptions{Username: username})
 		if err != nil {
 			return nil, err
 		}

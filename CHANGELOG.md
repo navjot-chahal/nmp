@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.3.1]
+### Changed
+- Added Service token use for `RegisterPassword` and `AuthenticatePassword` methods.
+
 ## [v0.3.0]
 ### Removed
 - Remove `AddDocScanCredentialInit`, `AddDocScanCredentialComplete`, `EvaluateDocScanCredential`, `AuthenticateDocScanInit` and `AuthenticateDocScanComplete` AuthID related functions.
